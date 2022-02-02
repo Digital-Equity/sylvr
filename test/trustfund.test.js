@@ -11,7 +11,12 @@ const TrustFund = artifacts.require("TrustFund");
 contract("TrustFund", async ([dev, parent, child, admin1, admin2]) => {
   this.deposit = new BN("5000000000000000000"); // 5 eth
 
+
   beforeEach(async () => {
-    const trustFund = await TrustFund.new(child, { from: parent });
+    this.trustFund = await TrustFund.new(child, { from: parent });
   });
+
+  it("Should emit a deposit event when the parent deposits into trust", async () => {
+
+  })
 });
