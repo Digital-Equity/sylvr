@@ -4,8 +4,10 @@ pragma solidity ^0.8.10;
 import "./interfaces/ITrust.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract TrustFund is ITrust, Ownable {
+
+contract TrustFund is ITrust, Ownable, ReentrancyGuard {
     address public immutable beneficiary;
     address public admin;
     address[] public tokens;
@@ -20,7 +22,7 @@ contract TrustFund is ITrust, Ownable {
     receive() external payable {}
 
     // accept ERC20 deposits
-    function deposit(address _token, uint256 _amount) external override returns (uint256) {
+    function deposit(address _token, uint256 _amount) external nonReentrant returns (uint256) {
         require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Insufficient allowance");
         require(IERC20(_token).balanceOf(msg.sender) >= _amount, "Insufficient balance");
 
@@ -32,18 +34,18 @@ contract TrustFund is ITrust, Ownable {
         IERC20(_token).transferFrom(msg.sender, address(this), _amount); // transfer ERC20 to contract
         balances[_token] += _amount; // update balance for token
 
-        emit Deposit(_token, _amount);
+        emit Deposit(_token, msg.sender, _amount);
         return balances[_token];
     }
 
-    function setAdmin(address _admin) external override onlyOwner {
+    function setAdmin(address _admin) external onlyOwner {
         address prevAdmin = admin;
         admin = _admin;
 
         emit AdminAssigned(admin, prevAdmin);
     }
 
-    function revokeRights() external override onlyOwner {
+    function revokeRights() external onlyOwner {
         address removedAdmin = admin;
         admin = owner();
         
@@ -54,17 +56,17 @@ contract TrustFund is ITrust, Ownable {
         require(IERC20(_token).balanceOf(address(this)) >= _amount);
         
         balances[_token] -= _amount;
-        emit Payment(_token, _amount);
+        emit Payment(_token, beneficiary, _amount);
         
         return balances[_token];
     } 
 
-    function withdraw(address _token, uint256 _amount) external onlyOwner {
+    function withdraw(address _token, uint256 _amount) external onlyOwner nonReentrant {
         require(balances[_token] > _amount, "TrustFund: Zero balance");
         uint balance = balances[_token];
         
-        IERC20(_token).transferFrom(address(this), owner(), balance);
-        emit Withdrawal(_token, _amount, owner());
+        IERC20(_token).transferFrom(address(this), msg.sender, balance);
+        emit Withdrawal(_token, _amount, msg.sender);
     }
 
     function withdrawEth(uint _amount) external onlyOwner {
@@ -75,7 +77,7 @@ contract TrustFund is ITrust, Ownable {
 
     }
 
-    function getBalanceForToken(address _token) external view override returns (uint256) {
+    function getBalanceForToken(address _token) external view returns (uint256) {
         require(balances[_token] > 0, "There is no balance");
         return balances[_token];
     }

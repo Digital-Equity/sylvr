@@ -16,9 +16,9 @@ interface ITrust {
 
     function withdraw(address token, uint256 amount) external;
 
-    event Deposit(address token, uint256 amount);
-    event Payment(address token, uint256 amount);
-    event Withdrawal(address token, uint256 amount, address to);
-    event AdminAssigned(address newAdmin, address prevAdmin);
-    event AdminRemoved(address removedAdmin, address currentAdmin);
+    event Deposit(address indexed token, address indexed to, uint256 amount);
+    event Payment(address indexed token, address indexed to, uint256 amount);
+    event Withdrawal(address indexed token, uint256 amount, address to);
+    event AdminAssigned(address indexed newAdmin, address indexed prevAdmin);
+    event AdminRemoved(address indexed removedAdmin, address indexed currentAdmin);
 }
