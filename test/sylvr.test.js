@@ -36,4 +36,11 @@ contract("Sylvr", ([dev, user]) => {
       "Ownable: caller is not the owner"
     );
   });
+
+  it("Should revert if the mint exceeps maximum supply", async () => {
+    await expectRevert(
+      this.sylvr.mint(user, this.maxSupply + 1, {from: dev}),
+      "SYLVR: Mint amount exceeds max supply"
+    )
+  })
 });
