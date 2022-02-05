@@ -6,25 +6,38 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-
 contract TrustFund is ITrust, Ownable, ReentrancyGuard {
     address public immutable beneficiary;
-    address public admin;
+    // uint256 public immutable deployedTimestamp;
+    // uint256 public immutable maturityDate;
     address[] public tokens;
-    mapping (address => uint256) balances;
+    mapping(address => uint256) balances;
 
     constructor(address _beneficiary) {
         beneficiary = _beneficiary;
-        admin = msg.sender;
+        // deployedTimestamp = block.timestamp;
+        // maturityDate = block.timestamp + _daysUntilMaturity;
     }
 
-    // accept eth
-    receive() external payable {}
+    // accept eth and emit deposit event
+    function depositEth() external payable nonReentrant {
+        emit Deposit(address(0), msg.sender, msg.value);
+    }
 
     // accept ERC20 deposits
-    function deposit(address _token, uint256 _amount) external nonReentrant returns (uint256) {
-        require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Insufficient allowance");
-        require(IERC20(_token).balanceOf(msg.sender) >= _amount, "Insufficient balance");
+    function deposit(address _token, uint256 _amount)
+        external
+        nonReentrant
+        returns (uint256)
+    {
+        require(
+            IERC20(_token).allowance(msg.sender, address(this)) >= _amount,
+            "Insufficient allowance"
+        );
+        require(
+            IERC20(_token).balanceOf(msg.sender) >= _amount,
+            "Insufficient balance"
+        );
 
         // check if current token exists, if not push to token array
         if (!_tokenExists(_token)) {
@@ -38,52 +51,48 @@ contract TrustFund is ITrust, Ownable, ReentrancyGuard {
         return balances[_token];
     }
 
-    function setAdmin(address _admin) external onlyOwner {
-        address prevAdmin = admin;
-        admin = _admin;
-
-        emit AdminAssigned(admin, prevAdmin);
-    }
-
-    function revokeRights() external onlyOwner {
-        address removedAdmin = admin;
-        admin = owner();
-        
-        emit AdminRemoved(removedAdmin, admin);
-    }
-
-    function payout(address _token, uint256 _amount) external onlyOwner returns (uint256) {
+    function payout(address _token, uint256 _amount)
+        external
+        onlyOwner
+        returns (uint256)
+    {
         require(IERC20(_token).balanceOf(address(this)) >= _amount);
-        
-        balances[_token] -= _amount;
-        emit Payment(_token, beneficiary, _amount);
-        
-        return balances[_token];
-    } 
 
-    function withdraw(address _token, uint256 _amount) external onlyOwner nonReentrant {
+        balances[_token] -= _amount; // update token balances
+        IERC20(_token).transfer(beneficiary, _amount);
+
+        emit Payment(_token, beneficiary, _amount);
+        return balances[_token];
+    }
+
+    function payoutEth(uint256 _amount) external payable onlyOwner {
+        require(address(this).balance >= _amount, "TrustFund: Zero ETH balance");
+        payable(beneficiary).transfer(_amount);
+
+        emit Payment(address(0), beneficiary, _amount);
+    }
+
+    function withdraw(address _token, uint256 _amount)
+        external
+        onlyOwner
+        nonReentrant
+    {
         require(balances[_token] > _amount, "TrustFund: Zero balance");
-        uint balance = balances[_token];
-        
+        uint256 balance = balances[_token];
+
         IERC20(_token).transferFrom(address(this), msg.sender, balance);
+        balances[_token] -= _amount; // update token balance
         emit Withdrawal(_token, _amount, msg.sender);
     }
 
-    function withdrawEth(uint _amount) external onlyOwner {
+    function withdrawEth(uint256 _amount) external onlyOwner nonReentrant {
         require(address(this).balance > _amount, "TrustFund: Zero balance");
-        payable(msg.sender);
 
-        payable(owner()).transfer(_amount);
-
-    }
-
-    function getBalanceForToken(address _token) external view returns (uint256) {
-        require(balances[_token] > 0, "There is no balance");
-        return balances[_token];
+        payable(msg.sender).transfer(_amount);
     }
 
     function _tokenExists(address _token) internal view returns (bool) {
-        for (uint i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < tokens.length; i++) {
             if (_token == tokens[i]) {
                 return true;
             }
