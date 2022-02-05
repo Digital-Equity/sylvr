@@ -5,11 +5,12 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Sylvr is ERC20("Sylvr", "SLVR"), Ownable {
-    /// @notice maximum supply of tokens (500B sylvr)
+    /// @notice maximum supply of tokens (500M sylvr)
     uint public constant maxSupply = 500_000_000e18; 
 
     function mint(address _to, uint _amount) external onlyOwner {
-        require(totalSupply() + _amount > maxSupply, "SYLVR: Mint amount exceeds max supply");
+        require(_to != address(0), "SYLVR: Cannot mint to zero address");
+        require((totalSupply() + _amount) <= maxSupply, "SYLVR: Mint amount exceeds max supply");
         _mint(_to, _amount);
     }
 

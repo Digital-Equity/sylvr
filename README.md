@@ -1,2 +1,2 @@
 # sylvr
-Escrow, Trust, and Treasury for fund management
+MultiEscrow, Trust smart contracts for capital management
