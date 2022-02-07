@@ -2,9 +2,9 @@
 pragma solidity ^0.8.10;
 
 interface ITrust {
-    function payout(address token, uint256 amount) external returns (uint256);
-
     function payoutEth(uint256 amount) external payable;
+
+    function payout(address token, uint256 amount) external returns (uint256);
 
     function depositEth() external payable;
 
