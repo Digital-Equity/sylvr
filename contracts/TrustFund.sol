@@ -51,6 +51,7 @@ contract TrustFund is ITrust, Ownable, ReentrancyGuard {
         return balances[_token];
     }
 
+    // payout ERC20 tokens
     function payout(address _token, uint256 _amount)
         external
         onlyOwner
@@ -66,7 +67,10 @@ contract TrustFund is ITrust, Ownable, ReentrancyGuard {
     }
 
     function payoutEth(uint256 _amount) external payable onlyOwner {
-        require(address(this).balance >= _amount, "TrustFund: Zero ETH balance");
+        require(
+            address(this).balance >= _amount,
+            "TrustFund: Zero ETH balance"
+        );
         payable(beneficiary).transfer(_amount);
 
         emit Payment(address(0), beneficiary, _amount);
