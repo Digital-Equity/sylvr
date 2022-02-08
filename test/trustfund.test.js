@@ -47,21 +47,12 @@ contract("TrustFund", async ([dev, parent, child, attacker]) => {
     assert.equal(this.erc20Deposit.toString(), balance.toString());
   });
 
-  it("Should emit a deposit event when somebody sends ETH to trustFund", async () => {
-    let receipt = await this.trustFund.depositEth({
+  it("Should give the trust a balance of 1 ether after ETH deposit", async () => {
+    await web3.eth.sendTransaction({
+      to: this.trustFund.address,
       from: parent,
       value: this.ethDeposit,
     });
-
-    expectEvent(receipt, "Deposit", {
-      token: constants.ZERO_ADDRESS,
-      from: parent,
-      amount: this.ethDeposit,
-    });
-  });
-
-  it("Should give the trust a balance of 1 ether after ETH deposit", async () => {
-    await this.trustFund.depositEth({ from: parent, value: this.ethDeposit });
     let balance = await web3.eth.getBalance(this.trustFund.address);
 
     assert.equal(this.ethDeposit.toString(), balance.toString());
@@ -81,8 +72,11 @@ contract("TrustFund", async ([dev, parent, child, attacker]) => {
   });
 
   it("Should revert if anybody tries to withdraw ETH and isn't the owner", async () => {
-    await this.trustFund.depositEth({ from: parent, value: this.ethDeposit });
-
+    await web3.eth.sendTransaction({
+      to: this.trustFund.address,
+      from: parent,
+      value: this.ethDeposit,
+    });
     await expectRevert(
       this.trustFund.withdrawEth(this.ethDeposit, {
         from: attacker,
@@ -105,8 +99,11 @@ contract("TrustFund", async ([dev, parent, child, attacker]) => {
   });
 
   it("Should revert if anybody tries to payout ETH and isn't the owner", async () => {
-    await this.trustFund.depositEth({ from: parent, value: this.ethDeposit });
-
+    await web3.eth.sendTransaction({
+      to: this.trustFund.address,
+      from: parent,
+      value: this.ethDeposit,
+    });
     await expectRevert(
       this.trustFund.payoutEth(this.ethDeposit, {
         from: attacker,
@@ -148,7 +145,11 @@ contract("TrustFund", async ([dev, parent, child, attacker]) => {
   });
 
   it("Should emit Payment event upon payoutEth call", async () => {
-    await this.trustFund.depositEth({ from: parent, value: this.ethDeposit });
+    await web3.eth.sendTransaction({
+      to: this.trustFund.address,
+      from: parent,
+      value: this.ethDeposit,
+    });
     let receipt = await this.trustFund.payoutEth(this.ethDeposit, {
       from: parent,
     });

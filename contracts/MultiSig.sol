@@ -79,8 +79,7 @@ contract MultiSig {
         requiredVotes = _required;
     }
 
-    // will be a fallback function, but this just makes my life easier in regards to testing for now
-    function deposit() external payable {
+    receive() external payable {
         emit Deposit(msg.sender, msg.value);
     }
 
