@@ -1,2 +1,2 @@
 # sylvr
-MultiEscrow, Trust smart contracts for capital management
+MultiSig, MultiSigERC20, TrustFund, and more smart contracts for capital management
