@@ -1,7 +1,6 @@
 const { assert } = require("chai");
 const {
-  BN, // Big Number support
-  constants, 
+  constants,
   expectEvent, // Assertions for emitted events
   expectRevert, // Assertions for transactions that should fail
 } = require("@openzeppelin/test-helpers");
@@ -10,9 +9,9 @@ const TrustFund = artifacts.require("TrustFund");
 const Sylvr = artifacts.require("Sylvr");
 
 contract("TrustFund", async ([dev, parent, child, attacker]) => {
-  this.ethDeposit = new BN("1000000000000000000"); // 1 ETH
-  this.erc20Deposit = new BN("5000000000000000000"); // 5 sylvr tokens
-  this.mintAmount = new BN("10000000000000000000"); // 10 sylvr tokens
+  this.ethDeposit = web3.utils.toWei("1", "ether"); // 1 ETH
+  this.erc20Deposit = web3.utils.toWei("5"); // 5 sylvr tokens
+  this.mintAmount = web3.utils.toWei("10"); // 10 sylvr tokens
 
   beforeEach(async () => {
     this.trustFund = await TrustFund.new(child, { from: parent });

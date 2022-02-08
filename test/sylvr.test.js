@@ -1,11 +1,11 @@
 const { assert } = require("chai");
-const { BN, expectRevert } = require("@openzeppelin/test-helpers");
+const { expectRevert } = require("@openzeppelin/test-helpers");
 
 const Sylvr = artifacts.require("Sylvr");
 
 contract("Sylvr", ([dev, user]) => {
-  this.maxSupply = new BN("500000000000000000000000000"); // 500M tokens
-  this.mintAmount = new BN("1000000000000000000000000"); // 1M tokens
+  this.maxSupply = web3.utils.toWei("500000000"); // 500M tokens
+  this.mintAmount = web3.utils.toWei("1000000"); // 1M tokens
 
   beforeEach(async () => {
     this.sylvr = await Sylvr.new({ from: dev });
@@ -28,7 +28,7 @@ contract("Sylvr", ([dev, user]) => {
     let totalSupply = await this.sylvr.totalSupply.call();
 
     assert.equal(totalSupply.toString(), this.mintAmount.toString());
-  })
+  });
 
   it("Should revert if somebody other than the owner tries to mint", async () => {
     await expectRevert(
@@ -39,8 +39,8 @@ contract("Sylvr", ([dev, user]) => {
 
   it("Should revert if the mint exceeps maximum supply", async () => {
     await expectRevert(
-      this.sylvr.mint(user, this.maxSupply + 1, {from: dev}),
+      this.sylvr.mint(user, this.maxSupply + 1, { from: dev }),
       "SYLVR: Mint amount exceeds max supply"
-    )
-  })
+    );
+  });
 });
