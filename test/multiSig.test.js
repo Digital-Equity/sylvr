@@ -3,7 +3,7 @@ const { expectRevert, expectEvent } = require("@openzeppelin/test-helpers");
 
 const MultiSig = artifacts.require("MultiSig");
 
-contract("MultiSig", ([alice, bob, michael, daniel, attacker, seller]) => {
+contract("MultiSig", ([alice, bob, michael, daniel, attacker, contractor]) => {
   this.deposit = web3.utils.toWei("1", "ether");
   this.data = web3.utils.asciiToHex("send 1 eth for nft");
 
@@ -26,7 +26,7 @@ contract("MultiSig", ([alice, bob, michael, daniel, attacker, seller]) => {
 
   it("Should emit a Submit event when Alice adds new transaction", async () => {
     let receipt = await this.multiSig.submitTransaction(
-      seller,
+      contractor,
       this.deposit,
       this.data,
       { from: alice }
@@ -37,7 +37,7 @@ contract("MultiSig", ([alice, bob, michael, daniel, attacker, seller]) => {
   });
 
   it("Should emit an Approve event when Bob approves alice's transaction", async () => {
-    await this.multiSig.submitTransaction(seller, this.deposit, this.data, {
+    await this.multiSig.submitTransaction(contractor, this.deposit, this.data, {
       from: alice,
     });
 
@@ -47,7 +47,7 @@ contract("MultiSig", ([alice, bob, michael, daniel, attacker, seller]) => {
   });
 
   it("Should revert when somebody tries to execute transaction without enough votes", async () => {
-    await this.multiSig.submitTransaction(seller, this.deposit, this.data, {
+    await this.multiSig.submitTransaction(contractor, this.deposit, this.data, {
       from: alice,
     });
 
@@ -57,8 +57,8 @@ contract("MultiSig", ([alice, bob, michael, daniel, attacker, seller]) => {
     );
   });
 
-  it("Should revert if anybody that isn't an owner tries to execute transaction", async () => {
-    await this.multiSig.submitTransaction(seller, this.deposit, this.data, {
+  it("Should revert if somebody that isn't an owner tries to execute transaction", async () => {
+    await this.multiSig.submitTransaction(contractor, this.deposit, this.data, {
       from: alice,
     });
 
@@ -69,7 +69,7 @@ contract("MultiSig", ([alice, bob, michael, daniel, attacker, seller]) => {
   })
 
   it("Should emit an Execute event if the required vote count is met", async () => {
-    await this.multiSig.submitTransaction(seller, this.deposit, this.data, {
+    await this.multiSig.submitTransaction(contractor, this.deposit, this.data, {
       from: alice,
     });
 
@@ -79,5 +79,37 @@ contract("MultiSig", ([alice, bob, michael, daniel, attacker, seller]) => {
 
     let receipt = await this.multiSig.execute(0, { from: alice });
     expectEvent(receipt, "Execute", { txId: "0" });
+  });
+
+  it("Should emit a Revoke event after an owner changes their vote", async () => {
+    await this.multiSig.submitTransaction(contractor, this.deposit, this.data, {
+      from: alice,
+    });
+
+    await this.multiSig.approve(0, { from: bob });
+    await this.multiSig.approve(0, { from: daniel });
+
+    let receipt = await this.multiSig.revoke(0, { from: daniel });
+    expectEvent(receipt, "Revoke", {
+      from: daniel,
+      txId: "0",
+    });
+  });
+
+  it("Should revert due to change of votes after initially meeting required vote count", async () => {
+    await this.multiSig.submitTransaction(contractor, this.deposit, this.data, {
+      from: alice,
+    });
+
+    await this.multiSig.approve(0, { from: bob });
+    await this.multiSig.approve(0, { from: daniel });
+    await this.multiSig.approve(0, { from: michael }); // currently meets the requirement of 3 votes of approval
+
+    await this.multiSig.revoke(0, { from: daniel });
+
+    await expectRevert(
+      this.multiSig.execute(0, { from: alice }),
+      "MultiSig: Transaction does not have enough approvals"
+    );
   });
 });

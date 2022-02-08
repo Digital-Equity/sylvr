@@ -8,14 +8,14 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract TrustFund is ITrust, Ownable, ReentrancyGuard {
     address public immutable beneficiary;
-    // uint256 public immutable deployedTimestamp;
+    // uint256 public immutable deploymentTimestamp;
     // uint256 public immutable maturityDate;
     address[] public tokens;
     mapping(address => uint256) balances;
 
     constructor(address _beneficiary) {
         beneficiary = _beneficiary;
-        // deployedTimestamp = block.timestamp;
+        // deploymentTimestamp = block.timestamp;
         // maturityDate = block.timestamp + _daysUntilMaturity;
     }
 
@@ -76,11 +76,7 @@ contract TrustFund is ITrust, Ownable, ReentrancyGuard {
         emit Payment(address(0), beneficiary, _amount);
     }
 
-    function withdraw(address _token, uint256 _amount)
-        external
-        onlyOwner
-        nonReentrant
-    {
+    function withdraw(address _token, uint256 _amount) external onlyOwner {
         require(balances[_token] > _amount, "TrustFund: Zero balance");
         uint256 balance = balances[_token];
 
@@ -89,7 +85,7 @@ contract TrustFund is ITrust, Ownable, ReentrancyGuard {
         emit Withdrawal(_token, _amount, msg.sender);
     }
 
-    function withdrawEth(uint256 _amount) external onlyOwner nonReentrant {
+    function withdrawEth(uint256 _amount) external onlyOwner {
         require(address(this).balance > _amount, "TrustFund: Zero balance");
 
         payable(msg.sender).transfer(_amount);
