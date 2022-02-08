@@ -20,7 +20,7 @@ contract TrustFund is ITrust, Ownable, ReentrancyGuard {
     }
 
     // accept eth and emit deposit event
-    function depositEth() external payable nonReentrant {
+    receive() external payable {
         emit Deposit(address(0), msg.sender, msg.value);
     }
 

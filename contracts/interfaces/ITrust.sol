@@ -6,8 +6,6 @@ interface ITrust {
 
     function payout(address token, uint256 amount) external returns (uint256);
 
-    function depositEth() external payable;
-
     function deposit(address token, uint256 amount) external returns (uint256);
 
     function withdrawEth(uint256 amount) external;
