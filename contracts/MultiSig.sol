@@ -18,7 +18,7 @@ contract MultiSig {
     }
 
     address[] public owners;
-    mapping(address => bool) public isOwner;
+    mapping(address => bool) public isOwner; // provides a more gas efficient way to find if caller is owner
     uint256 public requiredVotes;
 
     Transaction[] public transactions;
@@ -58,8 +58,9 @@ contract MultiSig {
             _owners.length > 0,
             "MultiSig: Cannot create with less than 1 owners"
         );
+
         require(
-            _required > 0 && _required <= owners.length,
+            _required > 0 && _required <= _owners.length,
             "MultiSig: Invalid number of required votes"
         );
 
@@ -78,10 +79,12 @@ contract MultiSig {
         requiredVotes = _required;
     }
 
-    receive() external payable {
+    // will be a fallback function, but this just makes my life easier in regards to testing for now
+    function deposit() external payable {
         emit Deposit(msg.sender, msg.value);
     }
 
+    // this will submit a transaction for approval. must reach the required number of approvals to be executed
     function submitTransaction(
         address _to,
         uint256 _value,
@@ -117,6 +120,7 @@ contract MultiSig {
         }
     }
 
+    // execute a transaction after it has reached the required number of approvals
     function execute(uint256 _txId)
         external
         onlyOwner
@@ -130,13 +134,35 @@ contract MultiSig {
         );
 
         Transaction storage transaction = transactions[_txId];
-        transaction.executed = true;
+        require(
+            address(this).balance > transaction.value,
+            "MultiSig: Insufficient balance"
+        );
+
         (bool success, ) = transaction.to.call{value: transaction.value}(
             transaction.data
         );
 
         require(success, "MultiSig: Transaction failed");
 
+        transaction.executed = true;
+
         emit Execute(_txId);
+    }
+
+    // provides the owner that has previously approved transanction the ability to change vote
+    function revoke(uint256 _txId)
+        external
+        onlyOwner
+        txExists(_txId)
+        txNotExecuted(_txId)
+    {
+        require(
+            approvals[_txId][msg.sender],
+            "MultiSig: Caller has not approved tx"
+        );
+        approvals[_txId][msg.sender] = false;
+
+        emit Revoke(msg.sender, _txId);
     }
 }
