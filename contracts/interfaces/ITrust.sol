@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
+
 interface ITrust {
+    function deposit(address token, uint256 amount) external;
+
     function payoutEth(uint256 amount) external payable;
 
-    function payout(address token, uint256 amount) external returns (uint256);
+    function payout(address token, uint256 amount) external returns (uint256 remainingBal);
 
-    function deposit(address token, uint256 amount) external returns (uint256);
+    function withdrawBenefactor(address token, uint256 amount) external returns (uint256 remainingBal);
 
-    function withdrawEth(uint256 amount) external;
+    function withdrawBeneficiary(address token, uint256 amount) external returns (uint256 remainingBal);
 
-    function withdraw(address token, uint256 amount) external;
+    function withdrawETHBenefactor(uint256 amount) external returns (uint256 remainingBal);
+
+    function withdrawETHBeneficiary(uint256 amount) external returns (uint256 remainingBal);
 
     event Deposit(address indexed token, address indexed from, uint256 amount);
     event Payment(address indexed token, address indexed to, uint256 amount);
