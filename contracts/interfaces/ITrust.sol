@@ -19,5 +19,5 @@ interface ITrust {
 
     event Deposit(address indexed token, address indexed from, uint256 amount);
     event Payment(address indexed token, address indexed to, uint256 amount);
-    event Withdrawal(address indexed token, uint256 amount, address to);
+    event Withdrawal(address indexed token, address indexed to, uint256 amount);
 }

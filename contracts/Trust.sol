@@ -32,7 +32,10 @@ contract Trust is ITrust, ReentrancyGuard {
     }
 
     modifier hasMatured() {
-        require(block.timestamp >= maturityDate, "Trust: trust has not matured");
+        require(
+            block.timestamp >= maturityDate,
+            "Trust: trust has not matured"
+        );
         _;
     }
 
@@ -150,23 +153,27 @@ contract Trust is ITrust, ReentrancyGuard {
     function _withdraw(
         address _token,
         uint256 _amount,
-        address _receiver
+        address _to
     ) internal returns (uint256 remainingBal) {
         uint256 balance = balances[_token];
-        require(balance > _amount, "Trust: insufficient balance");
+        require(balance >= _amount, "Trust: insufficient balance");
 
-        IERC20(_token).transferFrom(address(this), _receiver, _amount);
-        emit Withdrawal(_token, _amount, _receiver);
+        IERC20(_token).transfer(_to, _amount);
+        emit Withdrawal(_token, _to, _amount);
 
         balance -= _amount; // update current balance
         balances[_token] = balance; // update token balance in mapping
         remainingBal = balance;
     }
 
-    function _withdrawETH(uint256 _amount, address _receiver) internal {
-        require(address(this).balance > _amount, "Trust: insufficient balance");
+    function _withdrawETH(uint256 _amount, address _to) internal {
+        require(
+            address(this).balance >= _amount,
+            "Trust: insufficient balance"
+        );
 
-        payable(_receiver).transfer(_amount);
-        emit Withdrawal(address(0), _amount, _receiver);
+        (bool success, ) = _to.call{value: _amount}("");
+        require(success, "failed to send ether");
+        emit Withdrawal(address(0), _to, _amount);
     }
 }

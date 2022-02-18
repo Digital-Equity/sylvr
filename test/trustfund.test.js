@@ -8,7 +8,7 @@ const {
 const Trust = artifacts.require("Trust");
 const Sylvr = artifacts.require("Sylvr");
 
-contract("Trust", async ([dev, factory, benefactor, beneficiary, attacker]) => {
+contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
   this.ethDeposit = web3.utils.toWei("1", "ether"); // 1 ETH
   this.erc20Deposit = web3.utils.toWei("5"); // 5 sylvr tokens
   this.mintAmount = web3.utils.toWei("10"); // 10 sylvr tokens
@@ -160,6 +160,42 @@ contract("Trust", async ([dev, factory, benefactor, beneficiary, attacker]) => {
     expectEvent(receipt, "Payment", {
       token: constants.ZERO_ADDRESS,
       to: beneficiary,
+      amount: this.ethDeposit,
+    });
+  });
+
+  it("Should emit a Withdrawal event when the benefactor withdraws ERC20 from trust", async () => {
+    await this.trust.deposit(this.sylvr.address, this.erc20Deposit, {
+      from: benefactor,
+    });
+
+    let receipt = await this.trust.withdrawBenefactor(
+      this.sylvr.address,
+      this.erc20Deposit,
+      { from: benefactor }
+    );
+
+    expectEvent(receipt, "Withdrawal", {
+      token: this.sylvr.address,
+      amount: this.erc20Deposit,
+      to: benefactor,
+    });
+  });
+
+  it("Should emit a Withdrawal event when the benefactor withdraws ETH from trust", async () => {
+    await web3.eth.sendTransaction({
+      to: this.trust.address,
+      from: benefactor,
+      value: this.ethDeposit,
+    });
+
+    let receipt = await this.trust.withdrawETHBenefactor(this.ethDeposit, {
+      from: benefactor,
+    });
+
+    expectEvent(receipt, "Withdrawal", {
+      token: constants.ZERO_ADDRESS,
+      to: benefactor,
       amount: this.ethDeposit,
     });
   });
