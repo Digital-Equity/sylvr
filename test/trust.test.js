@@ -5,19 +5,26 @@ const {
   expectRevert, // Assertions for transactions that should fail
 } = require("@openzeppelin/test-helpers");
 
-const Trust = artifacts.require("Trust");
 const Sylvr = artifacts.require("Sylvr");
+const Trust = artifacts.require("Trust");
+const TrustFactory = artifacts.require("TrustFactory");
 
-contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
-  this.ethDeposit = web3.utils.toWei("1", "ether"); // 1 ETH
+contract("Trust", ([dev, benefactor, beneficiary, attacker]) => {
   this.erc20Deposit = web3.utils.toWei("5"); // 5 sylvr tokens
   this.mintAmount = web3.utils.toWei("10"); // 10 sylvr tokens
-  this.maturityDate = 1845667890; // 1645067890
+  this.maturityDate = 1845667890; // 06/28/2028
 
   beforeEach(async () => {
-    this.trust = await Trust.new(benefactor, beneficiary, this.maturityDate, {
-      from: factory,
-    });
+    this.trustFactory = await TrustFactory.new({ from: dev });
+    let trustCloneTx = await this.trustFactory.deployTrust(
+      benefactor,
+      beneficiary,
+      this.maturityDate,
+      { from: dev }
+    );
+    // the logs will contain the address to the new trust clone
+    let cloneAddress = trustCloneTx.logs[0].args.contractAddr;
+    this.trust = await Trust.at(cloneAddress);
     this.sylvr = await Sylvr.new({ from: dev });
     // mint 5 tokens to the benefactor for testing
     await this.sylvr.mint(benefactor, this.mintAmount, { from: dev });
@@ -27,7 +34,7 @@ contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
     });
   });
 
-  it("Should emit a deposit event when the benefactor deposits into trust", async () => {
+  it("Should emit a deposit event when somebody deposits into trust", async () => {
     let receipt = await this.trust.deposit(
       this.sylvr.address,
       this.erc20Deposit,
@@ -50,17 +57,6 @@ contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
     assert.equal(this.erc20Deposit.toString(), balance.toString());
   });
 
-  it("Should give the trust a balance of 1 ether after ETH deposit", async () => {
-    await web3.eth.sendTransaction({
-      to: this.trust.address,
-      from: benefactor,
-      value: this.ethDeposit,
-    });
-    let balance = await web3.eth.getBalance(this.trust.address);
-
-    assert.equal(this.ethDeposit.toString(), balance.toString());
-  });
-
   it("Should revert if anybody tries to withdraw ERC20 and isn't the benefactor", async () => {
     await this.trust.deposit(this.sylvr.address, this.erc20Deposit, {
       from: benefactor,
@@ -74,20 +70,6 @@ contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
     );
   });
 
-  it("Should revert if anybody tries to withdraw ETH and isn't the benefactor", async () => {
-    await web3.eth.sendTransaction({
-      to: this.trust.address,
-      from: benefactor,
-      value: this.ethDeposit,
-    });
-    await expectRevert(
-      this.trust.withdrawETHBenefactor(this.ethDeposit, {
-        from: attacker,
-      }),
-      "Trust: caller is not the benefactor"
-    );
-  });
-
   it("Should revert if anybody tries to payout ERC20 and isn't the benefactor", async () => {
     await this.trust.deposit(this.sylvr.address, this.erc20Deposit, {
       from: benefactor,
@@ -95,20 +77,6 @@ contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
 
     await expectRevert(
       this.trust.payout(this.sylvr.address, this.erc20Deposit, {
-        from: attacker,
-      }),
-      "Trust: caller is not the benefactor"
-    );
-  });
-
-  it("Should revert if anybody tries to payout ETH and isn't the benefactor", async () => {
-    await web3.eth.sendTransaction({
-      to: this.trust.address,
-      from: benefactor,
-      value: this.ethDeposit,
-    });
-    await expectRevert(
-      this.trust.payoutEth(this.ethDeposit, {
         from: attacker,
       }),
       "Trust: caller is not the benefactor"
@@ -147,24 +115,7 @@ contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
     });
   });
 
-  it("Should emit Payment event upon payoutEth call", async () => {
-    await web3.eth.sendTransaction({
-      to: this.trust.address,
-      from: benefactor,
-      value: this.ethDeposit,
-    });
-    let receipt = await this.trust.payoutEth(this.ethDeposit, {
-      from: benefactor,
-    });
-
-    expectEvent(receipt, "Payment", {
-      token: constants.ZERO_ADDRESS,
-      to: beneficiary,
-      amount: this.ethDeposit,
-    });
-  });
-
-  it("Should emit a Withdrawal event when the benefactor withdraws ERC20 from trust", async () => {
+  it("Should emit a Withdrawal event when the benefactor withdraws from trust", async () => {
     await this.trust.deposit(this.sylvr.address, this.erc20Deposit, {
       from: benefactor,
     });
@@ -182,41 +133,10 @@ contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
     });
   });
 
-  it("Should emit a Withdrawal event when the benefactor withdraws ETH from trust", async () => {
-    await web3.eth.sendTransaction({
-      to: this.trust.address,
-      from: benefactor,
-      value: this.ethDeposit,
-    });
-
-    let receipt = await this.trust.withdrawETHBenefactor(this.ethDeposit, {
-      from: benefactor,
-    });
-
-    expectEvent(receipt, "Withdrawal", {
-      token: constants.ZERO_ADDRESS,
-      to: benefactor,
-      amount: this.ethDeposit,
-    });
-  });
-
   /**
    * =========================================================================================
    * BENIFICIARY ACTIONS
    */
-
-  it("Should revert if beneficiary attempts to withdraw ETH before maturity", async () => {
-    await web3.eth.sendTransaction({
-      to: this.trust.address,
-      from: benefactor,
-      value: this.ethDeposit,
-    });
-
-    await expectRevert(
-      this.trust.withdrawETHBeneficiary(this.ethDeposit, { from: beneficiary }),
-      "Trust: trust has not matured"
-    );
-  });
 
   it("Should revert if beneficiary attempts to withdraw ERC20 before maturity", async () => {
     await this.trust.deposit(this.sylvr.address, this.erc20Deposit, {
@@ -238,21 +158,6 @@ contract("Trust", ([dev, factory, benefactor, beneficiary, attacker]) => {
 
     await expectRevert(
       this.trust.withdrawBeneficiary(this.sylvr.address, this.erc20Deposit, {
-        from: attacker,
-      }),
-      "Trust: caller is not the beneficiary"
-    );
-  });
-
-  it("Should revert if attacker tries to withdraw ETH instead of beneficiary", async () => {
-    await web3.eth.sendTransaction({
-      to: this.trust.address,
-      from: benefactor,
-      value: this.ethDeposit,
-    });
-
-    await expectRevert(
-      this.trust.withdrawETHBeneficiary(this.ethDeposit, {
         from: attacker,
       }),
       "Trust: caller is not the beneficiary"

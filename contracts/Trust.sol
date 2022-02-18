@@ -5,15 +5,22 @@ import "./interfaces/ITrust.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract Trust is ITrust, ReentrancyGuard {
-    address public immutable benefactor;
-    address public immutable beneficiary;
-    uint256 public immutable deploymentTimestamp;
-    uint256 public immutable maturityDate;
+contract Trust is ITrust, ReentrancyGuard, Initializable {
+    address public immutable factory;
+    address public benefactor;
+    address public beneficiary;
+    uint256 public deploymentTimestamp;
+    uint256 public maturityDate;
     address[] public tokens;
     mapping(address => bool) tokenExists;
     mapping(address => uint256) balances;
+
+    modifier onlyFactory() {
+        require(msg.sender == factory, "Trust: caller is not the factory");
+        _;
+    }
 
     modifier onlyBenefactor() {
         require(
@@ -39,23 +46,21 @@ contract Trust is ITrust, ReentrancyGuard {
         _;
     }
 
-    constructor(
+    constructor() {
+        factory = msg.sender;
+    }
+
+    function initialize(
         address _benefactor,
         address _beneficiary,
         uint256 _maturityDate
-    ) {
+    ) external onlyFactory initializer {
         benefactor = _benefactor;
         beneficiary = _beneficiary;
-        deploymentTimestamp = block.timestamp;
         maturityDate = _maturityDate;
     }
 
-    // accept eth and emit deposit event
-    receive() external payable {
-        emit Deposit(address(0), msg.sender, msg.value);
-    }
-
-    // accept ERC20 deposits
+    // accept ERC20 initialize
     function deposit(address _token, uint256 _amount) external nonReentrant {
         require(
             IERC20(_token).allowance(msg.sender, address(this)) >= _amount,
@@ -94,16 +99,6 @@ contract Trust is ITrust, ReentrancyGuard {
         remainingBal = balance;
     }
 
-    function payoutEth(uint256 _amount) external payable onlyBenefactor {
-        require(
-            address(this).balance >= _amount,
-            "Trust: insufficient ETH balance"
-        );
-        payable(beneficiary).transfer(_amount);
-
-        emit Payment(address(0), beneficiary, _amount);
-    }
-
     function withdrawBenefactor(address _token, uint256 _amount)
         external
         onlyBenefactor
@@ -121,25 +116,6 @@ contract Trust is ITrust, ReentrancyGuard {
     {
         uint256 balance = _withdraw(_token, _amount, beneficiary);
         remainingBal = balance;
-    }
-
-    function withdrawETHBenefactor(uint256 _amount)
-        external
-        onlyBenefactor
-        returns (uint256 remainingBal)
-    {
-        _withdrawETH(_amount, benefactor);
-        remainingBal = address(this).balance;
-    }
-
-    function withdrawETHBeneficiary(uint256 _amount)
-        external
-        onlyBeneficiary
-        hasMatured
-        returns (uint256 remainingBal)
-    {
-        _withdrawETH(_amount, beneficiary);
-        remainingBal = address(this).balance;
     }
 
     function getTokenBalance(address _token)
@@ -164,16 +140,5 @@ contract Trust is ITrust, ReentrancyGuard {
         balance -= _amount; // update current balance
         balances[_token] = balance; // update token balance in mapping
         remainingBal = balance;
-    }
-
-    function _withdrawETH(uint256 _amount, address _to) internal {
-        require(
-            address(this).balance >= _amount,
-            "Trust: insufficient balance"
-        );
-
-        (bool success, ) = _to.call{value: _amount}("");
-        require(success, "failed to send ether");
-        emit Withdrawal(address(0), _to, _amount);
     }
 }
