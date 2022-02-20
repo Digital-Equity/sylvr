@@ -16,6 +16,12 @@ interface ITrust {
         external
         returns (uint256 remainingBal);
 
+    function initialize(
+        address benefactor,
+        address beneficiary,
+        uint256 maturityDate
+    ) external;
+
     event Deposit(address indexed token, address indexed from, uint256 amount);
     event Payment(address indexed token, address indexed to, uint256 amount);
     event Withdrawal(address indexed token, address indexed to, uint256 amount);
