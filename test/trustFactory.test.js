@@ -1,9 +1,5 @@
 const { assert } = require("chai");
-const {
-  constants,
-  expectEvent, // Assertions for emitted events
-  expectRevert, // Assertions for transactions that should fail
-} = require("@openzeppelin/test-helpers");
+const { expectEvent, expectRevert } = require("@openzeppelin/test-helpers");
 
 const TrustFactory = artifacts.require("TrustFactory");
 
@@ -52,11 +48,25 @@ contract("TrustFactory", ([dev, benefactor, beneficiary, attacker]) => {
     assert.equal(2, count);
   });
 
+  it("Should return an array of addresses associated with input address", async () => {
+    let trusts = await this.trustFactory.getTrusts(benefactor);
+
+    assert.isTrue(trusts instanceof Array);
+  });
+
+
   it("Should have one contract at the benefactors address", async () => {
     let trusts = await this.trustFactory.getTrusts(benefactor);
 
     assert.equal(1, trusts.length);
   });
+
+  it("Should return the same address for beneficiary and benefactor trust", async () => {
+    let benefactorTrusts = await this.trustFactory.getTrusts(benefactor);
+    let beneficiaryTrusts = await this.trustFactory.getTrusts(beneficiary);
+
+    assert.deepEqual(benefactorTrusts, beneficiaryTrusts);
+  })
 
   it("should revert if caller is not the owner", async () => {
     await expectRevert(

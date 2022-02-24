@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-
 contract MultiSig {
     event Deposit(address indexed from, uint256 amount);
     event Submit(uint256 indexed txId);
