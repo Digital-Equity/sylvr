@@ -1,6 +1,7 @@
 const { assert } = require("chai");
 const { expectEvent, expectRevert } = require("@openzeppelin/test-helpers");
 
+const Trust = artifacts.require("Trust");
 const TrustFactory = artifacts.require("TrustFactory");
 
 contract("TrustFactory", ([dev, benefactor, beneficiary, attacker]) => {
@@ -54,7 +55,6 @@ contract("TrustFactory", ([dev, benefactor, beneficiary, attacker]) => {
     assert.isTrue(trusts instanceof Array);
   });
 
-
   it("Should have one contract at the benefactors address", async () => {
     let trusts = await this.trustFactory.getTrusts(benefactor);
 
@@ -66,7 +66,15 @@ contract("TrustFactory", ([dev, benefactor, beneficiary, attacker]) => {
     let beneficiaryTrusts = await this.trustFactory.getTrusts(beneficiary);
 
     assert.deepEqual(benefactorTrusts, beneficiaryTrusts);
-  })
+  });
+
+  it("Should return the same address for factory and trust.factory", async () => {
+    let benefactorTrusts = await this.trustFactory.getTrusts(benefactor);
+    let trustInstance = await Trust.at(benefactorTrusts[0]);
+    let trustFactory = await trustInstance.factory();
+
+    assert.equal(this.trustFactory.address, trustFactory);
+  });
 
   it("should revert if caller is not the owner", async () => {
     await expectRevert(

@@ -7,14 +7,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
 contract TrustFactory is Ownable {
-    address immutable trustImplementation;
+    address immutable implementation;
     address[] private instanceAddresses;
-    mapping(address => address[]) public trustDeployments;
+    mapping(address => address[]) public instances;
 
     event NewTrust(address indexed contractAddr);
 
     constructor() {
-        trustImplementation = address(new Trust());
+        implementation = address(new Trust());
     }
 
     function deployTrust(
@@ -22,13 +22,13 @@ contract TrustFactory is Ownable {
         address _beneficiary,
         uint256 _maturityDate
     ) external onlyOwner returns (address instance) {
-        address clone = Clones.clone(trustImplementation);
-        Trust(clone).initialize(_benefactor, _beneficiary, _maturityDate);
+        address clone = Clones.clone(implementation);
+        ITrust(clone).initialize(_benefactor, _beneficiary, _maturityDate);
         // emit event so that we can grab the address to new clone via logs
         emit NewTrust(clone);
         instanceAddresses.push(clone);
-        trustDeployments[_benefactor].push(clone);
-        trustDeployments[_beneficiary].push(clone);
+        instances[_benefactor].push(clone);
+        instances[_beneficiary].push(clone);
         instance = clone;
     }
 
@@ -37,6 +37,6 @@ contract TrustFactory is Ownable {
     }
 
     function getTrusts(address _client) external view returns (address[] memory) {
-        return trustDeployments[_client];
+        return instances[_client];
     }
 }
