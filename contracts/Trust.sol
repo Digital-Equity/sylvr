@@ -60,7 +60,7 @@ contract Trust is ITrust, ReentrancyGuard, Initializable {
         maturityDate = _maturityDate;
     }
 
-    // accept ERC20 initialize
+    // accept ERC20 
     function deposit(address _token, uint256 _amount) external nonReentrant {
         require(
             IERC20(_token).allowance(msg.sender, address(this)) >= _amount,

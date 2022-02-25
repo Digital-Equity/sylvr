@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
+import "./interfaces/IMultiSig.sol";
 
-contract MultiSig {
-    event Deposit(address indexed from, uint256 amount);
-    event Submit(uint256 indexed txId);
-    event Approve(address indexed from, uint256 indexed txId);
-    event Revoke(address indexed from, uint256 indexed txId);
-    event Execute(uint256 indexed txId);
-
+contract MultiSig is IMultiSig {
+    address immutable factory;
     struct Transaction {
         address to;
         uint256 value;
@@ -17,10 +13,15 @@ contract MultiSig {
 
     address[] public owners;
     mapping(address => bool) public isOwner; // provides a more gas efficient way to find if caller is owner
-    uint256 public requiredVotes;
+    uint8 public requiredVotes;
 
     Transaction[] public transactions;
     mapping(uint256 => mapping(address => bool)) public approvals;
+
+    modifier onlyFactory() {
+        require(msg.sender == factory, "MultiSig: caller is not the factory");
+        _;
+    }
 
     modifier onlyOwner() {
         require(isOwner[msg.sender], "MultiSig: Caller is not an owner");
@@ -51,14 +52,21 @@ contract MultiSig {
         _;
     }
 
-    constructor(address[] memory _owners, uint256 _required) {
+    constructor() {
+        factory = msg.sender;
+    }
+
+    function initialize(address[] memory _owners, uint8 _votesRequired)
+        external
+        onlyFactory
+    {
         require(
             _owners.length > 0,
             "MultiSig: Cannot create with less than 1 owners"
         );
 
         require(
-            _required > 0 && _required <= _owners.length,
+            _votesRequired > 0 && _votesRequired <= _owners.length,
             "MultiSig: Invalid number of required votes"
         );
 
@@ -74,7 +82,7 @@ contract MultiSig {
             owners.push(owner);
         }
 
-        requiredVotes = _required;
+        requiredVotes = _votesRequired;
     }
 
     receive() external payable {
