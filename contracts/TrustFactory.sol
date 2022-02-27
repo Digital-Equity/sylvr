@@ -21,7 +21,7 @@ contract TrustFactory is Ownable {
         address _benefactor,
         address _beneficiary,
         uint256 _maturityDate
-    ) external onlyOwner returns (address instance) {
+    ) external onlyOwner returns (address trust) {
         address clone = Clones.clone(implementation);
         ITrust(clone).initialize(_benefactor, _beneficiary, _maturityDate);
         // emit event so that we can grab the address to new clone via logs
@@ -29,14 +29,18 @@ contract TrustFactory is Ownable {
         instanceAddresses.push(clone);
         instances[_benefactor].push(clone);
         instances[_beneficiary].push(clone);
-        instance = clone;
+        trust = clone;
     }
 
     function getInstanceCount() external view returns (uint256) {
         return instanceAddresses.length;
     }
 
-    function getTrusts(address _client) external view returns (address[] memory) {
+    function getTrusts(address _client)
+        external
+        view
+        returns (address[] memory)
+    {
         return instances[_client];
     }
 }
