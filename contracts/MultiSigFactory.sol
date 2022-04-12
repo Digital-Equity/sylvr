@@ -11,7 +11,7 @@ contract MultiSigFactory is Ownable {
     address[] private instanceAddresses;
     mapping(bytes => address) public instances;
 
-    event NewMultiSig(address indexed contractAddr);
+    event NewMultiSig(bytes indexed multiSigId, address indexed contractAddr);
 
     constructor() {
         implementation = address(new MultiSig());
@@ -22,15 +22,19 @@ contract MultiSigFactory is Ownable {
         onlyOwner
         returns (address multiSig)
     {
+        bytes memory multiSigId = _hashInstanceId(_owners);
+        require(
+            instances[multiSigId] == address(0),
+            "MultiSig: multisig exists already"
+        );
+
         address clone = Clones.clone(implementation);
         IMultiSig(clone).initialize(_owners, _requiredVotes);
 
-        emit NewMultiSig(clone);
-
         instanceAddresses.push(clone);
-        bytes memory multiSigId = _hashInstanceId(_owners);
         instances[multiSigId] = clone; // store the multisig address at the hash of owners array
 
+        emit NewMultiSig(multiSigId, clone);
         multiSig = clone;
     }
 

@@ -70,7 +70,8 @@ contract MultiSig is IMultiSig {
             "MultiSig: Invalid number of required votes"
         );
 
-        for (uint256 i = 0; i < _owners.length; i++) {
+        uint length = owners.length;
+        for (uint256 i = 0; i < length; i++) {
             address owner = _owners[i];
             require(
                 owner != address(0),
@@ -118,7 +119,8 @@ contract MultiSig is IMultiSig {
         view
         returns (uint256 count)
     {
-        for (uint256 i = 0; i < owners.length; i++) {
+        uint length = owners.length;
+        for (uint256 i = 0; i < length; i++) {
             if (approvals[_txId][owners[i]]) {
                 count += 1;
             }
