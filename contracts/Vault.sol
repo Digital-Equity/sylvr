@@ -44,8 +44,9 @@ contract Vault {
     }
 
     function withdraw(uint256 _shares) external {
-        uint256 amount = (_shares * token.balanceOf(address(this))) /
-            totalSupply;
+        uint256 amount = (_shares * token.balanceOf(address(this))) / totalSupply;
+        require(balanceOf[msg.sender] >= amount);
+
         _burn(msg.sender, _shares);
         token.transfer(msg.sender, amount);
     }
