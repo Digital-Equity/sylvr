@@ -7,42 +7,47 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Vault is Ownable, ReentrancyGuard {
     IERC20 public immutable token;
-    uint256 public totalSupply;
+    bytes32 public immutable symbol;
+    uint256 public outstandingShares;
+
     mapping(address => uint256) public balanceOf;
 
     event Deposit(address indexed from, uint256 amount);
     event Withdrawal(address indexed to, uint256 amount);
 
-    constructor(address _token) {
+    constructor(address _token, bytes32 _symbol) {
         token = IERC20(_token);
+        symbol = _symbol;
     }
 
     function _mint(address _to, uint256 _amount) private {
-        totalSupply += _amount;
+        outstandingShares += _amount;
         balanceOf[_to] += _amount;
     }
 
     function _burn(address _from, uint256 _amount) private {
-        totalSupply -= _amount;
+        outstandingShares -= _amount;
         balanceOf[_from] -= _amount;
     }
 
     function deposit(uint256 _amount) external {
-        // we will need to mint shares to represent their deposited balance
         /**
         a = amount
         B = balance of token before deposit
         T = total supply
         s = shares to mint
+        (T + s) / T = (a + b) / B
        */
-        // (T + s) / T = (a + b) / B
+
         require(token.transferFrom(msg.sender, address(this), _amount));
 
         uint256 shares;
-        if (totalSupply == 0) {
+        if (outstandingShares == 0) {
             shares = _amount;
         } else {
-            shares = (_amount * totalSupply) / token.balanceOf(address(this));
+            shares =
+                (_amount * outstandingShares) /
+                token.balanceOf(address(this));
         }
 
         _mint(msg.sender, shares);
@@ -50,9 +55,16 @@ contract Vault is Ownable, ReentrancyGuard {
     }
 
     function withdraw(uint256 _shares) external nonReentrant {
+        /*
+        a = amount
+        B = balance of token before withdrawal
+        T = outstanding shares
+        s = shares to burn
+        (T - s) / T = (B - a) / B
+        */
         uint256 amount = (_shares * token.balanceOf(address(this))) /
-            totalSupply;
-        require(balanceOf[msg.sender] >= amount);
+            outstandingShares;
+        require(balanceOf[msg.sender] >= _shares, "invalid amount");
 
         _burn(msg.sender, _shares);
         token.transfer(msg.sender, amount);
