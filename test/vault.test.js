@@ -39,11 +39,11 @@ contract("Vault", ([dev, user, user2]) => {
     assert.equal(shares.toString(), this.deposit.toString());
   });
 
-  it("Should emit a withdrawal event upon withdrawal", async () => {
+  it("Should emit a withdraw event upon withdrawal", async () => {
     await this.vault.deposit(this.deposit, { from: user });
     let receipt = await this.vault.withdraw(this.deposit, { from: user });
 
-    expectEvent(receipt, "Withdrawal", { to: user, amount: this.deposit });
+    expectEvent(receipt, "Withdraw", { to: user, amount: this.deposit });
   });
 
   it("Should burn 50 shares and return 50 sylvr tokens to depositor", async () => {
@@ -59,7 +59,7 @@ contract("Vault", ([dev, user, user2]) => {
     assert.equal(outstandingShares, "0");
   });
 
-  it("Should burn 50 shares and return 50 sylvr tokens to depositor", async () => {
+  it("Should set outstandingShares to 50 after 2 deposits of 50 and 1 withdrawal of 50", async () => {
     await this.sylvr.mint(user2, this.deposit, { from: dev });
     await this.sylvr.approve(this.vault.address, this.deposit, { from: user2 });
 
@@ -71,7 +71,9 @@ contract("Vault", ([dev, user, user2]) => {
     await this.vault.withdraw(shares, { from: user2 });
 
     let balance = await this.sylvr.balanceOf.call(user2);
+    let totalSupply = await this.vault.outstandingShares.call();
 
     assert.equal(this.deposit.toString(), balance.toString());
+    assert.equal(totalSupply.toString(), this.deposit.toString());
   });
 });
