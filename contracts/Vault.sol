@@ -4,16 +4,17 @@ pragma solidity ^0.8.10;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "./interfaces/IVault.sol";
 
-contract Vault is IVault, ReentrancyGuard {
+contract Vault is IVault, ReentrancyGuard, Initializable {
     IERC20 public token;
     bytes32 public symbol;
     address public registry;
     uint256 public outstandingShares;
     mapping(address => uint256) public balanceOf;
 
-    modifier onlyRegistry() { 
+    modifier onlyRegistry() {
         require(
             msg.sender == registry,
             "Only the registry can perform this action"
@@ -21,9 +22,7 @@ contract Vault is IVault, ReentrancyGuard {
         _;
     }
 
-    constructor(address _token, bytes32 _symbol) {
-        token = IERC20(_token);
-        symbol = _symbol;
+    constructor() {
         registry = msg.sender;
     }
 
