@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 import "./interfaces/IMultiSig.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract MultiSig is IMultiSig {
+contract MultiSig is IMultiSig, Initializable {
     address immutable factory;
     struct Transaction {
         address to;
@@ -70,7 +71,7 @@ contract MultiSig is IMultiSig {
             "MultiSig: Invalid number of required votes"
         );
 
-        uint length = owners.length;
+        uint256 length = owners.length;
         for (uint256 i = 0; i < length; i++) {
             address owner = _owners[i];
             require(
@@ -119,7 +120,7 @@ contract MultiSig is IMultiSig {
         view
         returns (uint256 count)
     {
-        uint length = owners.length;
+        uint256 length = owners.length;
         for (uint256 i = 0; i < length; i++) {
             if (approvals[_txId][owners[i]]) {
                 count += 1;
